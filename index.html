@@ -169,54 +169,61 @@
     const totalFinal = document.getElementById("total-final");
     let nota = [];
 
+    // Renderizar catálogo
     function renderizarCatalogo(filtro = "") {
       catalogoBody.innerHTML = "";
       productos.forEach(p => {
         if (!p.nombre.toLowerCase().includes(filtro.toLowerCase())) return;
         const tienePieza = p.pieza !== null;
-        const tr = document.createElement("tr");
-
+        const idSafe = p.nombre.replace(/\s+/g, '_');
         if (p.editable) {
-          tr.innerHTML = `
-            <td>${p.nombre}</td>
-            <td>
-              <select id="tipo-${p.nombre.replace(/\s+/g, '_')}" onchange="actualizarPrecio('${p.nombre}')">
-                <option value="unidad">${p.unidad}</option>
-                ${tienePieza ? `<option value="pieza">pieza</option>` : ''}
-              </select>
-            </td>
-            <td>$<span id="precio-${p.nombre.replace(/\s+/g, '_')}">${p.precio.toFixed(2)}</span></td>
-            <td><input type="number" min="1" value="1" id="cantidad-${p.nombre.replace(/\s+/g, '_')}"></td>
-            <td><button onclick="agregarANota('${p.nombre}')">Agregar</button></td>
+          catalogoBody.innerHTML += `
+            <tr>
+              <td>${p.nombre}</td>
+              <td>
+                <select id="tipo-${idSafe}" onchange="actualizarPrecio('${p.nombre}')">
+                  <option value="unidad">${p.unidad}</option>
+                  ${tienePieza ? `<option value="pieza">pieza</option>` : ''}
+                </select>
+              </td>
+              <td>$<span id="precio-${idSafe}">${p.precio.toFixed(2)}</span></td>
+              <td><input type="number" min="1" value="1" id="cantidad-${idSafe}"></td>
+              <td><button onclick="agregarANota('${p.nombre}')">Agregar</button></td>
+            </tr>
           `;
         } else {
-          tr.innerHTML = `
-            <td>${p.nombre}</td>
-            <td>${p.unidad}</td>
-            <td>$${p.precio.toFixed(2)}</td>
-            <td><input type="number" min="1" value="1" disabled></td>
-            <td><button onclick="agregarANota('${p.nombre}')">Agregar</button></td>
+          catalogoBody.innerHTML += `
+            <tr>
+              <td>${p.nombre}</td>
+              <td>${p.unidad}</td>
+              <td>$${p.precio.toFixed(2)}</td>
+              <td><input type="number" min="1" value="1" id="cantidad-${idSafe}"></td>
+              <td><button onclick="agregarANota('${p.nombre}')">Agregar</button></td>
+            </tr>
           `;
         }
-
-        catalogoBody.appendChild(tr);
       });
     }
 
+    // Actualizar precio según tipo
     function actualizarPrecio(nombre) {
       const producto = productos.find(p => p.nombre === nombre);
-      const tipo = document.getElementById(`tipo-${nombre.replace(/\s+/g, '_')}`).value;
-      const precioSpan = document.getElementById(`precio-${nombre.replace(/\s+/g, '_')}`);
+      const idSafe = nombre.replace(/\s+/g, '_');
+      const tipo = document.getElementById(`tipo-${idSafe}`).value;
+      const precioSpan = document.getElementById(`precio-${idSafe}`);
       if (producto.editable) {
         precioSpan.textContent = (tipo === "pieza" && producto.pieza) ? producto.pieza.toFixed(2) : producto.precio.toFixed(2);
       }
     }
 
+    // Agregar producto a la nota
     function agregarANota(nombre) {
       const producto = productos.find(p => p.nombre === nombre);
-      const tipo = document.getElementById(`tipo-${nombre.replace(/\s+/g, '_')}`)?.value || "unidad";
-      const cantidad = parseFloat(document.getElementById(`cantidad-${nombre.replace(/\s+/g, '_')}`).value) || 1;
+      const idSafe = nombre.replace(/\s+/g, '_');
+      const tipo = document.getElementById(`tipo-${idSafe}`)?.value || "unidad";
+      const cantidad = parseFloat(document.getElementById(`cantidad-${idSafe}`).value) || 1;
       const precioFinal = (producto.editable && tipo === "pieza" && producto.pieza) ? producto.pieza : producto.precio;
+
       const index = nota.findIndex(item => item.nombre === nombre && item.tipo === tipo);
 
       if (index > -1) {
@@ -228,6 +235,7 @@
       renderizarNota();
     }
 
+    // Mostrar productos seleccionados
     function renderizarNota() {
       notaBody.innerHTML = "";
       let total = 0;
@@ -245,9 +253,11 @@
         `;
         notaBody.appendChild(tr);
       });
-      calcularTotal(); // 👈 Ahora recalcula todo desde cero
+
+      calcularTotal(); // Recalcula el total y aplica el descuento
     }
 
+    // Calcular totales
     function calcularTotal() {
       let total = 0;
       nota.forEach(item => {
@@ -262,6 +272,7 @@
       totalFinal.textContent = totalFinalCalculado.toFixed(2);
     }
 
+    // Editar cantidad en la nota
     function editarCantidad(index, nuevaCantidad) {
       nota[index].cantidad = parseFloat(nuevaCantidad) || 0;
       if (nota[index].cantidad <= 0) {
@@ -270,16 +281,19 @@
       renderizarNota();
     }
 
+    // Eliminar producto
     function eliminarProducto(index) {
       nota.splice(index, 1);
       renderizarNota();
     }
 
+    // Filtrar productos
     function filtrarProductos() {
       const texto = document.getElementById("buscador").value;
       renderizarCatalogo(texto);
     }
 
+    // Limpiar historial
     function limpiarHistorial() {
       nota = [];
       document.getElementById("valor-descuento").value = 0;
