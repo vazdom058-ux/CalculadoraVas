@@ -64,13 +64,11 @@
 </head>
 <body>
   <h2>Calculadora de Precios - SURTIDO</h2>
-
   <!-- Campo de búsqueda -->
   <div class="buscador">
     <label for="buscador">Buscar Producto:</label>
     <input type="text" id="buscador" placeholder="Buscar producto..." oninput="filtrarProductos()">
   </div>
-
   <!-- Tabla de catálogo de productos -->
   <h3>Catálogo de Productos</h3>
   <div class="table-container">
@@ -81,19 +79,16 @@
           <th>Tipo</th>
           <th>Precio</th>
           <th>Cantidad</th>
-          <th>Acción</th>
         </tr>
       </thead>
       <tbody id="catalogo-body"></tbody>
     </table>
   </div>
-
   <!-- Campo de descuento -->
   <div class="descuento">
     <label for="valor-descuento">Descuento ($):</label>
     <input type="number" id="valor-descuento" min="0" value="0" oninput="calcularTotal()">
   </div>
-
   <!-- Tabla de productos seleccionados -->
   <h3>Productos Seleccionados (Nota)</h3>
   <div class="table-container">
@@ -111,17 +106,14 @@
       <tbody id="nota-body"></tbody>
     </table>
   </div>
-
   <!-- Totales -->
   <div class="total">Total General: $<span id="total-general">0.00</span></div>
   <div class="total">Descuento Aplicado: $<span id="descuento-aplicado">0.00</span></div>
   <div class="total">Total Final: $<span id="total-final">0.00</span></div>
-
   <!-- Botón Limpiar -->
   <div class="botones">
     <button onclick="limpiarHistorial()">Limpiar Historial</button>
   </div>
-
   <script>
     const productos = [
       { nombre: "QUESO FRESCO", precio: 23.00, unidad: "unidad", pieza: null, editable: false },
@@ -154,8 +146,22 @@
       { nombre: "QUESILLO MEDIO", precio: 48.50, unidad: "unidad", pieza: null, editable: false },
       { nombre: "QUESILLO KILO CAMPERLAC", precio: 97.00, unidad: "unidad", pieza: null, editable: false },
       { nombre: "QUESILLO KILO YESENIA", precio: 98.00, unidad: "unidad", pieza: null, editable: false },
-      { nombre: "QUESO BOTANERO PARTIDO", precio: 90.00, unidad: "unidad", pieza: 9.00, editable: true },
-      { nombre: "QUESO ENCHILADO PARTIDO", precio: 90.00, unidad: "unidad", pieza: 9.00, editable: true },
+      {
+        nombre: "QUESO BOTANERO PARTIDO",
+        precio: 90.00,
+        unidad: "entero",
+        pieza10: 9.00,
+        pieza12: 7.50,
+        editable: true
+      },
+      {
+        nombre: "QUESO ENCHILADO PARTIDO",
+        precio: 90.00,
+        unidad: "entero",
+        pieza10: 9.00,
+        pieza12: 7.50,
+        editable: true
+      },
       { nombre: "QUESO SECO ENTERO", precio: 39.00, unidad: "unidad", pieza: null, editable: false },
       { nombre: "QUESO PANTE", precio: 20.00, unidad: "unidad", pieza: null, editable: false },
       { nombre: "QUESO FRESCO GRANDE", precio: 92.00, unidad: "unidad", pieza: null, editable: false },
@@ -169,14 +175,29 @@
     const totalFinal = document.getElementById("total-final");
     let nota = [];
 
-    // Renderizar catálogo
     function renderizarCatalogo(filtro = "") {
       catalogoBody.innerHTML = "";
       productos.forEach(p => {
         if (!p.nombre.toLowerCase().includes(filtro.toLowerCase())) return;
-        const tienePieza = p.pieza !== null;
         const idSafe = p.nombre.replace(/\s+/g, '_');
-        if (p.editable) {
+
+        if (p.nombre === "QUESO BOTANERO PARTIDO" || p.nombre === "QUESO ENCHILADO PARTIDO") {
+          catalogoBody.innerHTML += `
+            <tr>
+              <td>${p.nombre}</td>
+              <td>
+                <select id="tipo-${idSafe}" onchange="actualizarPrecio('${p.nombre}')">
+                  <option value="entero">entero</option>
+                  <option value="pieza10">pieza 10</option>
+                  <option value="pieza12">pieza 12</option>
+                </select>
+              </td>
+              <td>$<span id="precio-${idSafe}">${p.precio.toFixed(2)}</span></td>
+              <td><input type="number" min="0" value="0" id="cantidad-${idSafe}" onchange="agregarONuevo('${p.nombre}')"></td>
+            </tr>
+          `;
+        } else if (p.editable) {
+          const tienePieza = p.pieza !== null;
           catalogoBody.innerHTML += `
             <tr>
               <td>${p.nombre}</td>
@@ -187,8 +208,7 @@
                 </select>
               </td>
               <td>$<span id="precio-${idSafe}">${p.precio.toFixed(2)}</span></td>
-              <td><input type="number" min="1" value="1" id="cantidad-${idSafe}"></td>
-              <td><button onclick="agregarANota('${p.nombre}')">Agregar</button></td>
+              <td><input type="number" min="0" value="0" id="cantidad-${idSafe}" onchange="agregarONuevo('${p.nombre}')"></td>
             </tr>
           `;
         } else {
@@ -197,45 +217,68 @@
               <td>${p.nombre}</td>
               <td>${p.unidad}</td>
               <td>$${p.precio.toFixed(2)}</td>
-              <td><input type="number" min="1" value="1" id="cantidad-${idSafe}"></td>
-              <td><button onclick="agregarANota('${p.nombre}')">Agregar</button></td>
+              <td><input type="number" min="0" value="0" id="cantidad-${idSafe}" onchange="agregarONuevo('${p.nombre}')"></td>
             </tr>
           `;
         }
       });
     }
 
-    // Actualizar precio según tipo
     function actualizarPrecio(nombre) {
       const producto = productos.find(p => p.nombre === nombre);
       const idSafe = nombre.replace(/\s+/g, '_');
       const tipo = document.getElementById(`tipo-${idSafe}`).value;
       const precioSpan = document.getElementById(`precio-${idSafe}`);
-      if (producto.editable) {
+
+      if (producto.nombre === "QUESO BOTANERO PARTIDO" || producto.nombre === "QUESO ENCHILADO PARTIDO") {
+        if (tipo === "pieza10") {
+          precioSpan.textContent = producto.pieza10.toFixed(2);
+        } else if (tipo === "pieza12") {
+          precioSpan.textContent = producto.pieza12.toFixed(2);
+        } else {
+          precioSpan.textContent = producto.precio.toFixed(2);
+        }
+      } else if (producto.editable) {
         precioSpan.textContent = (tipo === "pieza" && producto.pieza) ? producto.pieza.toFixed(2) : producto.precio.toFixed(2);
       }
     }
 
-    // Agregar producto a la nota
-    function agregarANota(nombre) {
+    function agregarONuevo(nombre) {
       const producto = productos.find(p => p.nombre === nombre);
       const idSafe = nombre.replace(/\s+/g, '_');
       const tipo = document.getElementById(`tipo-${idSafe}`)?.value || "unidad";
-      const cantidad = parseFloat(document.getElementById(`cantidad-${idSafe}`).value) || 1;
-      const precioFinal = (producto.editable && tipo === "pieza" && producto.pieza) ? producto.pieza : producto.precio;
+      const cantidad = parseFloat(document.getElementById(`cantidad-${idSafe}`).value) || 0;
 
-      const index = nota.findIndex(item => item.nombre === nombre && item.tipo === tipo);
+      let precioFinal = producto.precio;
 
-      if (index > -1) {
-        nota[index].cantidad += cantidad;
+      if (producto.nombre === "QUESO BOTANERO PARTIDO" || producto.nombre === "QUESO ENCHILADO PARTIDO") {
+        if (tipo === "pieza10") {
+          precioFinal = producto.pieza10;
+        } else if (tipo === "pieza12") {
+          precioFinal = producto.pieza12;
+        }
+      } else if (producto.editable) {
+        precioFinal = (tipo === "pieza" && producto.pieza) ? producto.pieza : producto.precio;
+      }
+
+      if (cantidad <= 0) {
+        const index = nota.findIndex(item => item.nombre === nombre && item.tipo === tipo);
+        if (index > -1) {
+          nota.splice(index, 1);
+        }
       } else {
-        nota.push({ nombre, tipo, precio: precioFinal, cantidad });
+        const index = nota.findIndex(item => item.nombre === nombre && item.tipo === tipo);
+        if (index > -1) {
+          nota[index].cantidad = cantidad;
+          nota[index].precio = precioFinal;
+        } else {
+          nota.push({ nombre, tipo, precio: precioFinal, cantidad });
+        }
       }
 
       renderizarNota();
     }
 
-    // Mostrar productos seleccionados
     function renderizarNota() {
       notaBody.innerHTML = "";
       let total = 0;
@@ -253,26 +296,21 @@
         `;
         notaBody.appendChild(tr);
       });
-
-      calcularTotal(); // Recalcula el total y aplica el descuento
+      calcularTotal();
     }
 
-    // Calcular totales
     function calcularTotal() {
       let total = 0;
       nota.forEach(item => {
         total += item.cantidad * item.precio;
       });
-
       const valorDescuento = parseFloat(document.getElementById("valor-descuento").value) || 0;
       const totalFinalCalculado = Math.max(0, total - valorDescuento);
-
       totalGeneral.textContent = total.toFixed(2);
       descuentoAplicado.textContent = valorDescuento.toFixed(2);
       totalFinal.textContent = totalFinalCalculado.toFixed(2);
     }
 
-    // Editar cantidad en la nota
     function editarCantidad(index, nuevaCantidad) {
       nota[index].cantidad = parseFloat(nuevaCantidad) || 0;
       if (nota[index].cantidad <= 0) {
@@ -281,22 +319,26 @@
       renderizarNota();
     }
 
-    // Eliminar producto
     function eliminarProducto(index) {
       nota.splice(index, 1);
       renderizarNota();
     }
 
-    // Filtrar productos
     function filtrarProductos() {
       const texto = document.getElementById("buscador").value;
       renderizarCatalogo(texto);
     }
 
-    // Limpiar historial
     function limpiarHistorial() {
       nota = [];
       document.getElementById("valor-descuento").value = 0;
+
+      productos.forEach(p => {
+        const idSafe = p.nombre.replace(/\s+/g, '_');
+        const input = document.getElementById(`cantidad-${idSafe}`);
+        if (input) input.value = "0";
+      });
+
       renderizarNota();
     }
 
